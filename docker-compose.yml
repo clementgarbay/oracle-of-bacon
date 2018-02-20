@@ -1,0 +1,7 @@
+neo4j:
+  build: ./docker/neo4j
+  ports:
+    - "7474:7474"
+    - "7687:7687"
+  volumes:
+    - ./docker/neo4j/neo4j.conf:/var/lib/neo4j/conf/neo4j.conf

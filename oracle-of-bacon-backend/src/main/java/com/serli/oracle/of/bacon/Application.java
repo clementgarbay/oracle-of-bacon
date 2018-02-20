@@ -9,9 +9,7 @@ public class Application {
 
     public static void main(String[] args) {
         WebServer webServer = new WebServer();
-        webServer.configure(routes -> {
-            routes.add(new APIEndPoint());
-        });
+        webServer.configure(routes -> routes.add(new APIEndPoint()));
 
         String port = getenv("PORT", "8000");
 
