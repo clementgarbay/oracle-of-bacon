@@ -1,25 +1,76 @@
 package com.serli.oracle.of.bacon.repository;
 
+import org.neo4j.driver.v1.*;
+import org.neo4j.driver.v1.types.Path;
 
-import org.neo4j.driver.v1.AuthTokens;
-import org.neo4j.driver.v1.Driver;
-import org.neo4j.driver.v1.GraphDatabase;
-import org.neo4j.driver.v1.Session;
-
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class Neo4JRepository {
     private final Driver driver;
 
     public Neo4JRepository() {
-        this.driver = GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("neo4j", "password"));
+        this.driver = GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("neo4j", "test"));
     }
 
-    public List<?> getConnectionsToKevinBacon(String actorName) {
+    public List<GraphItem> getConnectionsToKevinBacon(String actorName) {
         Session session = driver.session();
 
-        // TODO implement Oracle of Bacon
-        return null;
+        final String sourceActor = "Bacon, Kevin (I)";
+
+        String request = "MATCH " +
+            "(sourceActor:Actor {name: {sourceActor}}), " +
+            "(targetActor:Actor {name: {targetActor}}), " +
+            "path = shortestPath((sourceActor)-[:PLAYED_IN*]-(targetActor)) " +
+            "WITH path " +
+            "WHERE length(path) > 1 " +
+            "RETURN path";
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("sourceActor", sourceActor);
+        params.put("targetActor", actorName);
+
+        StatementResult statementResult = session.run(request, params);
+
+        List<List<GraphItem>> paths = statementResult.list().stream()
+                .map(record -> (Path) record.asMap().get("path"))
+                .map(this::pathToGraphItems)
+                .collect(Collectors.toList());
+
+        session.close();
+
+        return paths.get(0); // TODO: can have multiple paths
+    }
+
+    private List<GraphItem> pathToGraphItems(Path path) {
+        List<GraphItem> nodes = StreamSupport
+                .stream(path.nodes().spliterator(), false)
+                .map(node -> new GraphNode(
+                    node.id(),
+                    node.values().iterator().next().toString(),
+                    node.labels().iterator().next()
+                ))
+                .collect(Collectors.toList());
+
+        List<GraphItem> relationships = StreamSupport
+                .stream(path.relationships().spliterator(), false)
+                .map(relationship -> new GraphEdge(
+                    relationship.id(),
+                    relationship.startNodeId(),
+                    relationship.endNodeId(),
+                    relationship.type()
+                ))
+                .collect(Collectors.toList());
+
+        List<GraphItem> results = new ArrayList<>();
+        results.addAll(nodes);
+        results.addAll(relationships);
+
+        return results;
     }
 
     public static abstract class GraphItem {
