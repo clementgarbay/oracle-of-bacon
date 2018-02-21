@@ -4,6 +4,7 @@ import org.neo4j.driver.v1.*;
 import org.neo4j.driver.v1.types.Path;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -37,7 +38,7 @@ public class Neo4JRepository {
 
         // Retrieve path from result
         Optional<List<GraphItem>> path = statementResult.list().stream()
-                .map(record -> (Path) record.asMap().get("path"))
+                .flatMap(record -> record.values().stream().map(Value::asPath))
                 .map(this::pathToGraphItems)
                 .findFirst();
 
@@ -48,31 +49,38 @@ public class Neo4JRepository {
 
     private List<GraphItem> pathToGraphItems(Path path) {
         // Retrieve nodes from path and convert them to GraphNode objects
-        List<GraphItem> nodes = StreamSupport
-                .stream(path.nodes().spliterator(), false)
-                .map(node -> new GraphNode(
-                    node.id(),
-                    node.values().iterator().next().toString(),
-                    node.labels().iterator().next()
-                ))
-                .collect(Collectors.toList());
+        List<GraphItem> nodes = toListConverter(
+                path.nodes(),
+                node -> new GraphNode(
+                        node.id(),
+                        node.values().iterator().next().toString(),
+                        node.labels().iterator().next()
+                )
+        );
 
         // Retrieve relationships from path and convert them to GraphEdge objects
-        List<GraphItem> relationships = StreamSupport
-                .stream(path.relationships().spliterator(), false)
-                .map(relationship -> new GraphEdge(
-                    relationship.id(),
-                    relationship.startNodeId(),
-                    relationship.endNodeId(),
-                    relationship.type()
-                ))
-                .collect(Collectors.toList());
+        List<GraphItem> relationships = toListConverter(
+                path.relationships(),
+                relationship -> new GraphEdge(
+                        relationship.id(),
+                        relationship.startNodeId(),
+                        relationship.endNodeId(),
+                        relationship.type()
+                )
+        );
 
         List<GraphItem> results = new ArrayList<>();
         results.addAll(nodes);
         results.addAll(relationships);
 
         return results;
+    }
+
+    private <T,R> List<R> toListConverter(Iterable<T> iterable, Function<? super T, ? extends R> converter) {
+        return StreamSupport
+                .stream(iterable.spliterator(), false)
+                .map(converter)
+                .collect(Collectors.toList());
     }
 
     public static abstract class GraphItem {
