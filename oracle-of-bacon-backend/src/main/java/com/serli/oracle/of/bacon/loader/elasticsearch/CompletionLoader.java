@@ -45,7 +45,8 @@ public class CompletionLoader {
 
             // Create an IndexRequest for each actor, and add it to the bulk processor
             for (String actorName : actorsNames) {
-                IndexRequest indexRequest = toIndexRequestOfSuggestDoc(ES_INDEX, ES_TYPE, actorName);
+                String actorNameWithoutQuotes = actorName.substring(1, actorName.length() - 1);
+                IndexRequest indexRequest = toIndexRequestOfSuggestDoc(ES_INDEX, ES_TYPE, actorNameWithoutQuotes);
 
                 count.incrementAndGet();
                 bulkProcessor.add(indexRequest);
