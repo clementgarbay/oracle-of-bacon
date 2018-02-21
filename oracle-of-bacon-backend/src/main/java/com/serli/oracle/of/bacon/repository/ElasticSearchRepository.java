@@ -5,6 +5,7 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.suggest.SuggestBuilder;
 import org.elasticsearch.search.suggest.SuggestBuilders;
@@ -38,7 +39,7 @@ public class ElasticSearchRepository {
         final String SUGGESTION_NAME = "actor-name-suggest";
 
         // Build search request with a completion suggestion
-        SuggestionBuilder suggestionBuilder = SuggestBuilders.completionSuggestion("suggest").text(searchQuery);
+        SuggestionBuilder suggestionBuilder = SuggestBuilders.completionSuggestion("suggest").prefix(searchQuery, Fuzziness.AUTO);
         SuggestBuilder suggestBuilder = new SuggestBuilder().addSuggestion(SUGGESTION_NAME, suggestionBuilder);
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().suggest(suggestBuilder);
         SearchRequest searchRequest = new SearchRequest(ES_INDEX).types(ES_TYPE).source(searchSourceBuilder);
