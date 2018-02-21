@@ -18,6 +18,19 @@ Le projet est réparti en deux modules :
 * [Le front end](./oracle-of-bacon-frontend) qui expose l'IHM.
 
 ## Pour démarrer
+
+### Bases de données
+
+Démarrer les démons des bases de données nécessaires :
+```BASH
+docker-compose up -d # mongo elasticsearch logstash kibana redis
+./start-neo4j.sh # neo4j (configurer les variables NEO4J_PATH et DATA_PATH)
+```
+
+Note : neo4j est aussi disponible avec docker.
+
+### Démarrer les projets
+
 Pour lancer le projet démarrez deux terminaux et positionnez-vous dans ce répertoire :
 ```BASH
 cd <path to directory oracle-of-bacon>
