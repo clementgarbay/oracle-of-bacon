@@ -3,10 +3,7 @@ package com.serli.oracle.of.bacon.repository;
 import org.neo4j.driver.v1.*;
 import org.neo4j.driver.v1.types.Path;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -22,6 +19,7 @@ public class Neo4JRepository {
 
         final String sourceActor = "Bacon, Kevin (I)";
 
+        // Neo4j request
         String request = "MATCH " +
             "(sourceActor:Actor {name: {sourceActor}}), " +
             "(targetActor:Actor {name: {targetActor}}), " +
@@ -34,19 +32,22 @@ public class Neo4JRepository {
         params.put("sourceActor", sourceActor);
         params.put("targetActor", actorName);
 
+        // Execute request
         StatementResult statementResult = session.run(request, params);
 
-        List<List<GraphItem>> paths = statementResult.list().stream()
+        // Retrieve path from result
+        Optional<List<GraphItem>> path = statementResult.list().stream()
                 .map(record -> (Path) record.asMap().get("path"))
                 .map(this::pathToGraphItems)
-                .collect(Collectors.toList());
+                .findFirst();
 
         session.close();
 
-        return paths.get(0); // TODO: can have multiple paths
+        return path.orElse(Collections.emptyList());
     }
 
     private List<GraphItem> pathToGraphItems(Path path) {
+        // Retrieve nodes from path and convert them to GraphNode objects
         List<GraphItem> nodes = StreamSupport
                 .stream(path.nodes().spliterator(), false)
                 .map(node -> new GraphNode(
@@ -56,6 +57,7 @@ public class Neo4JRepository {
                 ))
                 .collect(Collectors.toList());
 
+        // Retrieve relationships from path and convert them to GraphEdge objects
         List<GraphItem> relationships = StreamSupport
                 .stream(path.relationships().spliterator(), false)
                 .map(relationship -> new GraphEdge(
